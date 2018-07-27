@@ -1,0 +1,39 @@
+createdAt: "2018-07-27T02:59:29.324Z"
+updatedAt: "2018-07-27T06:05:59.700Z"
+type: "MARKDOWN_NOTE"
+folder: "43fcf3e45c66e44cae69"
+title: "数据字典"
+content: '''
+  # 数据字典
+  
+  
+  ## 一些常用字段
+  
+  - 数据行
+    | fieldname | type | notes |
+    | --- | --- | --- |
+    | RowID | uuid | |
+    | SystemFlag | boolean | |
+    | ErasedFlag | boolean | |
+  
+  
+  - 数据审计
+    | fieldname | type | notes |
+    |--- | --- | ---|
+    | CreatedBy | uuid | |
+    | CreateTime | timestamp | DEFAULT CURRENT_TIMESTAMP |
+    | ModifiedBy | uuid | |
+    | ModifyTime | timestamp | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+   |
+  
+  
+  - 日期跟踪
+    | fieldname | type | notes |
+    | --- | --- | --- |
+    | EffectiveStart | date | |
+    | EffectiveEnd | date | |
+  
+'''
+tags: []
+isStarred: false
+isTrashed: false

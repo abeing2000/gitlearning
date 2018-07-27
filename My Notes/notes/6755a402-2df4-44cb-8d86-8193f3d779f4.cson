@@ -1,0 +1,74 @@
+createdAt: "2018-07-27T03:19:15.690Z"
+updatedAt: "2018-07-27T03:29:15.886Z"
+type: "MARKDOWN_NOTE"
+folder: "28c433161766562e7c8b"
+title: "SPA - Single Page Application"
+content: '''
+  # SPA - Single Page Application
+  
+  ## being 对象
+  > (function(){})(); 
+  
+  - **include**
+  动态添加第三方库文件, 已包含的文件则不再添加
+  - **require**
+  动态加载小应用对象 (AppLite), 不论文件是否加载过, 都重新加载
+  - **ajax**
+  提供统一的异步XHR递交数据的
+  - **setInstance**, **getInstence**
+  在全局的 being 对象中存取 SPA 应用程序实例 (Single Page Application Instance), 主要考虑在动态加载的 Applite 中需要获取 SPA 的配置信息
+  - **setToken**, **getToken**
+  全局的 Token 字符串, 用于在 AppLite 中需要向服务端递交服务令牌的场合
+  
+  ## being.Application
+  > Ext.extend( Ext.util.Observable, {});
+  > 注: constructor 中需要执行 Ext.apply(this, config), 否则无法获取到自定义属性值
+  
+  - **launch** 
+  SPA 程序的启动过程: 加载 requisites 所列出的对象后, 检查当前 Application 是否已经获取到 token, 若已有则执行 onStart 否则执行 onLogin
+  
+  - **onLogin**
+  加载登录窗口并执行登录操作
+  
+  - **onStart**
+  加载 SPA 的主界面并响应用户操作
+  
+  ***
+  ## 创建程序
+  ```html
+  
+  <body>
+  	<!-- 蒙版,  用于显示加载动画 -->
+      <div class="loading-mask">
+          <div class="loading-image"></div>
+      </div>    
+  </body>    
+  <script>
+          <!-- 脚本 -->
+      Ext.onReady(function(){
+          Ext.BLANK_IMAGE_URL = '__IMG__/s.gif';
+          Ext.QuickTips.init();
+          Ext.form.Field.prototype.msgTarget = "side";
+          
+          Ext.Loader.load([
+              // 加载全局扩展对象 being
+              '__JS__/being/being.js?_={$timestamp|time}', 
+              // 加载应用程序配置对象 App.Application
+              '__JS__/App/Application.js?_={$timestamp|time}' 
+          ], function(){
+              // 启动应用程序
+              (new App.Application({
+                  jsRoot: '__JS__'
+              })).launch();
+              // 隐藏蒙版
+              (function(){$('.loading-mask').fadeOut()}).defer(500);
+          }, this, true)
+      });
+  </script>
+  
+  ```
+  
+'''
+tags: []
+isStarred: false
+isTrashed: false

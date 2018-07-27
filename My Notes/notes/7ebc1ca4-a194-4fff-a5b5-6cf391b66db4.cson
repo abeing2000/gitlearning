@@ -1,0 +1,138 @@
+createdAt: "2018-07-27T03:32:02.449Z"
+updatedAt: "2018-07-27T06:05:08.750Z"
+type: "MARKDOWN_NOTE"
+folder: "01d0fab1ed5d0aafd4c2"
+title: "会话的管理"
+content: '''
+  # 会话的管理
+  > SessionController.class
+  
+  
+  ## Captcha
+  验证码图片
+  - 生成验证码图片
+  - 将 MD5 混淆的验证码通过 cookie 传递给客户端 
+  ``` php
+  # 验证码图片
+  public function Captcha(){
+    $Verify = new \\Think\\Verify();
+    $Verify->entry();
+    
+    # 设置客户端的 cookies 用于前端的验证码校验
+    cookie("salt", null);
+    exit(cookie("salt", md5($Verify->codeValue)));
+  }
+  
+  ```
+  ## Login
+  登录验证
+  - 确保客户端提供了当前有效的验证码
+  - 对用户名密码字符串进行初步的处理
+  - 根据"验证域"的类型, 判断账号的有效性
+  - 反馈客户端登录验证的结果
+  
+  > localVerify, wxbcVerify
+  
+  ``` php
+  # 响应登录验证请求
+  public function Login(){
+      # 获取客户端递交的数据
+      $data = I('post.');
+      
+      # 用户名或密码不得为空
+      if(empty($data["Username"])||empty($data["Password"])){
+          
+          $response["success"] = false;
+          $response["message"] = "需要提供用户账号及登录密码";
+      } else {
+  
+          # 对密码字段进行处理
+          $salt = cookie("salt");
+          $cipherText = $data["Password"];
+          $iv_base = $key_base = substr($salt,9,16);
+          
+          # 密钥的处理
+          $key = md5($key_base);
+          $iv = $iv_base;
+          
+          # 对密码进行解密处理
+          $cryptText = base64_decode($cipherText); 
+          $data["Password"] = trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128, $key, $cryptText, MCRYPT_MODE_CBC, $iv));
+          
+          $do_verify = ("WXBC"==$data["Domain"]? "DomainVerify": "LocalVerify" );
+          $response = $this->$do_verify($data);  
+      }
+      //exit(var_dump($response));
+      exit($this->ajaxReturn($response));
+  }
+  ```
+  
+  ## localVerify
+  本地验证
+  
+  ## wxbcVerify
+  wx.bc 域验证
+  ``` php
+  # 使用AD域进行登录验证
+  private function DomainVerify($data)
+  {
+    $ldap_host = "dns.wx.bc";
+    $base_dn = "OU=Horizon Users,OU=Horizon,DC=wx,DC=bc";
+  
+    $response["success"] = false;
+    # 建立到 LDAP 服务器的连接
+    $ldap_conn = ldap_connect($ldap_host);
+    if (!$ldap_conn){
+      $response["message"] = "无法连接到LDAP服务器，请联系系统管理员";
+      return $response;
+    } 
+    
+    # 域账号的处理
+    $full_name = "wx\\\\" . $data["Username"];
+    # 登录信息验证
+    $ldap_bind = ldap_bind($ldap_conn, $full_name, $data["Password"]);
+    if (!$ldap_bind){
+      $response["message"] = "账号验证失败，" . ldap_error($ldap_conn);
+      return $response;
+    }
+  
+    # 获取用户信息
+    ldap_set_option($ldap_conn, LDAP_OPT_PROTOCOL_VERSION, 3); 
+    ldap_set_option($ldap_conn, LDAP_OPT_REFERRALS, 0); 
+    $user_name = $data["Username"];
+    $result = ldap_search($ldap_conn, $base_dn, "(sAMAccountName=$user_name)");
+    if (!$result){
+      $response["message"] = "查询账号信息失败，" . ldap_error($ldap_conn);
+      return $response;
+    }
+    
+    $counts = ldap_count_entries($ldap_conn, $result);
+    if (1 > $counts){
+      $response["message"] = "未能查找到符合条件的账号信息。" ;
+      return $response;
+    }
+    
+    $response["success"] = true;
+    $account = ldap_get_entries($ldap_conn, $result);
+    $response["message"] = "域用户账号验证成功" ;
+    $response["objectGuid"] = $this->BinToGuid($account[0]["objectguid"][0]);
+    return $response;
+  }
+      
+  private function BinToGuid($binGuid)
+  {
+    $unpacked = unpack('Va/v2b/n2c/Nd', $binGuid);
+    return sprintf('%08X-%04X-%04X-%04X-%04X%08X', 
+      $unpacked['a'], 
+      $unpacked['b1'],
+      $unpacked['b2'],
+      $unpacked['c1'], 
+      $unpacked['c2'], 
+      $unpacked['d']);
+  }
+  ```
+  
+'''
+tags: []
+isStarred: false
+isTrashed: false

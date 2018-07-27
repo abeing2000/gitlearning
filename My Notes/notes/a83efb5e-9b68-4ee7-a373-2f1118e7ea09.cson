@@ -1,0 +1,180 @@
+createdAt: "2018-07-27T03:28:20.708Z"
+updatedAt: "2018-07-27T03:31:05.045Z"
+type: "MARKDOWN_NOTE"
+folder: "28c433161766562e7c8b"
+title: "SPA Instance"
+content: '''
+  # SPA Instance
+  
+  
+  ## _App_
+  
+  >Ext.ns(_App_)
+  
+  ---
+  
+  ### _App_.Application
+  
+  > Ext.extend( being.Application, {});
+  
+  - 自定义属性
+      - jsRoot: 加载前端对象
+  - **onLogin**
+  创建并显示 _App_.LoginWindow 的实例, 在实例的 afterLogin 事件中调用 being.setToken 设置全局的 token值 并销毁实例自身
+  
+  ---
+  
+  ### _App_.LoginWindow
+  
+  > Ext.extend( Ext.Window, {});
+  **注:** 需要加载第三方库 /Assets/CryptoJS/crypto-js.js
+  
+  ```js
+      //
+      // btnSubmit 按钮默认不可用, 仅当确保窗口组件及CryptoJS组件均加载完成后, 才能设置可用
+      //
+  
+      // 在 constructor 中加载 CryptoJS 库, 并在加载完成后调用 bootstrap
+      var self = this;
+      being.include([
+          '/Assets/CryptoJS/crypto-js.js'
+      ], this.bootstrap, self);
+  
+      // 在 initComponent 中, 当窗口组件均渲染完成后调用 bootstrap
+      this.on('afterrender', this.bootstrap, this, {single: true});
+  
+      //
+      bootstrap: function(){
+          (!!this.rendered)&&('object'==typeof(CryptoJS))&&(this.btnSubmit.enable());
+          this.setFocus();    // 设置默认的光标停留位置
+      },
+  ```
+  
+  #### Properties
+  - 自定义属性
+      - captchaUrl: 提供验证码图片的访问地址
+      - dataUrl: 提供登录验证的访问地址
+  
+  - 自定义事件
+      - afterLogin
+      在登录成功后将 token[string] 返回给 _App_.Application
+  
+  - 相关的属性配置
+      - width, height
+      - closable (false)
+  
+  - 组件
+      - form
+          txtUsername, txtPassword, cmbDomain, txtCaptcha, imgCaptcha
+      - btnSubmit, btnReset
+  
+      - cmbDomain 对象的定义
+      ```json
+          {
+              ref: 'cmbDomain',
+              xtype: 'combo',
+              editable: false,
+              mode: "local",
+              triggerAction: "all",
+              forceSelection: true,
+              store: new Ext.data.ArrayStore({
+                  fields: ['text', 'value'],
+                  data:[
+                      ['Local', 'LOC'],       // LOC: 服务端本地验证
+                      ['WX.BC', 'WXBC']       // WXBC: 通过 wx.bc域验证账号
+                  ]
+              }),
+              valueField: 'value',
+              displayField: 'text',
+              fieldLabel: '认证域',
+              hiddenName: 'Domain',
+              value: 'WXBC'
+          }
+      ```
+  
+      - imgCaptcha 对象及相关的操作
+      ```js
+          // 构建验证码图片
+          onCreateCaptcha: function(){
+              return new Ext.BoxComponent({
+                  autoEl: {
+                      id: 'imgCaptcha',
+                      tag: 'img', 
+                      src: this.captchaUrl + '/a/' + Math.random(),
+                      onclick: 'this.src=\\'' + this.captchaUrl + '\\/a/\\'+Math.random();'
+                  }
+              });
+          }
+  
+          // 重置图片验证码
+          onResetCaptcha: function(){
+              this.form.txtCaptcha.setValue("");  // 清除已输入的验证码内容
+              $('#imgCaptcha').click();           // 重新申请验证码图片
+          }
+  
+          // 验证码校验
+          // 服务端在提供验证码图片时, 同步将验证码的 MD5 值存储在 cookies 中 
+          onVaildCaptcha: function(captcha){
+              var verify = Ext.util.Cookies.get('salt');
+              if(verify==null) return true;
+          
+              var md5code = CryptoJS.MD5(captcha.toUpperCase()).toString();
+              return (verify==md5code);        
+          }
+      ```
+  
+  #### Methods
+  - **onLogin**
+  用户点击"登录"按钮的事件响应
+      - 禁用 btnSubmit 避免多次递交
+      - 检查 Username 和 Password 不得为空
+      - 检查用户输入的 Captcha 值是否有效 (_this.onVaildCaptcha_)
+      - 使用 CryptoJS.RC4 对 Password 进行加密
+      - 将数据递交到 dataUrl
+      - 根据服务端反馈执行响应操作
+      - 设置 btnSubmit 可用
+  
+      ```js
+          // 对密码字符串进行混淆处理
+          var salt = Ext.util.Cookies.get('salt');
+          var keyBase = salt.substr(9,16);
+          var keyHash = CryptoJS.MD5(keyBase);
+          var key = CryptoJS.enc.Utf8.parse(keyHash);
+          var iv = CryptoJS.enc.Utf8.parse(keyBase);
+          var cipherText = CryptoJS.AES.encrypt(params['Password'], key, {
+              iv: iv, 
+              mode: CryptoJS.mode.CBC, 
+              padding: CryptoJS.pad.ZeroPadding
+          }).toString();
+      ```
+  - **onResetForm**
+  用户点击"重置"按钮的事件响应
+  
+  - **onResetCaptcha**
+  用户点击验证码图片的事件响应
+  
+  ---
+  
+  ### _App_.Workbranch
+  
+  > Ext.extend( Ext.Container, {});
+  
+  #### Properties
+  - 自定义属性
+      - dataUrl: 提供功能菜单信息的访问地址
+      - rootId: 菜单根节点 Id
+  
+  - 组件
+      - ctMenupane, ctDesktop
+  
+  #### Methods
+  - **onNodeClick**
+  点击菜单节点时判断是否为叶子节点. 若为叶子节点则检查菜单项对应的 Tab 面板是否已加载, 若已加载则仅需激活对应面板, 否则需要根据菜单项的相关配置信息从服务端获取 AppLite 对象, 创建对象实例并将其添加到 ctDesktop 的 TabPanel 中.
+  
+  - **onTabClick**
+  点击 TabPanel 的页签时, 高亮显示当前面板对应的菜单项
+  
+'''
+tags: []
+isStarred: false
+isTrashed: false
